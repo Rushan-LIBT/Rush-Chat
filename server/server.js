@@ -41,7 +41,6 @@ app.use((req, res, next) => {
 app.use(express.json());
 
 // Serve static files from uploads directory
-const path = require('path');
 const uploadsPath = path.join(__dirname, 'uploads');
 console.log('Serving static files from:', uploadsPath);
 app.use('/uploads', express.static(uploadsPath));
