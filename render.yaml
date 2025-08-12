@@ -9,9 +9,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: MONGODB_URI
-        fromDatabase:
-          name: rushchat-db
-          property: connectionString
+        value: mongodb+srv://rushan:rushan1234@cluster0.sluz1rc.mongodb.net/Chat?retryWrites=true&w=majority&appName=Cluster0
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_URL
@@ -20,7 +18,4 @@ services:
           name: rush-chat
           property: host
 
-databases:
-  - name: rushchat-db
-    databaseName: rushchat
-    user: rushchat
+# Database configuration removed - using external MongoDB Atlas
