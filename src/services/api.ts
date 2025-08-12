@@ -11,7 +11,24 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 10000, // 10 second timeout
 });
+
+// Simple cache for API responses
+const cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
+
+const getCachedData = (key: string): any | null => {
+  const cached = cache.get(key);
+  if (cached && Date.now() - cached.timestamp < cached.ttl) {
+    return cached.data;
+  }
+  cache.delete(key);
+  return null;
+};
+
+const setCachedData = (key: string, data: any, ttl: number = 30000) => {
+  cache.set(key, { data, timestamp: Date.now(), ttl });
+};
 
 // Add token to requests if available
 api.interceptors.request.use((config) => {
@@ -21,6 +38,23 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Response interceptor for error handling and retry logic
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    
+    // Retry failed requests once
+    if (!originalRequest._retry && error.response?.status >= 500) {
+      originalRequest._retry = true;
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+      return api.request(originalRequest);
+    }
+    
+    return Promise.reject(error);
+  }
+);
 
 export const authAPI = {
   login: async (username: string, password: string) => {
@@ -39,7 +73,12 @@ export const authAPI = {
   },
 
   getUsers: async () => {
+    const cacheKey = 'users_list';
+    const cached = getCachedData(cacheKey);
+    if (cached) return cached;
+    
     const response = await api.get('/auth/users');
+    setCachedData(cacheKey, response.data, 60000); // Cache for 1 minute
     return response.data;
   },
 

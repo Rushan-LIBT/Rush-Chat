@@ -55,7 +55,7 @@ const darkTheme = createTheme({
 
 const ChatApp: React.FC = () => {
   const { currentUser } = useAuth();
-  const { selectedUser } = useChat();
+  const { selectedUser, isOnline } = useChat();
 
   if (!currentUser) {
     return <AuthContainer />;
@@ -67,8 +67,42 @@ const ChatApp: React.FC = () => {
         height: '100vh',
         display: 'flex',
         bgcolor: 'background.default',
+        position: 'relative',
       }}
     >
+      {/* Network Status Indicator */}
+      <Box
+        className={isOnline ? 'online-indicator' : 'offline-indicator'}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          position: 'fixed',
+          top: 10,
+          right: 10,
+          zIndex: 9999,
+          py: 1,
+          px: 2,
+          borderRadius: 2,
+          fontSize: '0.75rem',
+          fontWeight: 600,
+          bgcolor: isOnline ? 'success.main' : 'error.main',
+          color: 'white',
+          animation: 'slideInUp 0.3s ease-out',
+        }}
+      >
+        <Box
+          sx={{
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            bgcolor: 'white',
+            animation: isOnline ? 'pulse 2s infinite' : 'none',
+          }}
+        />
+        {isOnline ? 'Online' : 'Offline'}
+      </Box>
+
       <Sidebar />
       {selectedUser ? <ChatWindow /> : <WelcomeScreen />}
     </Box>

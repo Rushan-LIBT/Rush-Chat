@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Paper,
@@ -7,6 +7,10 @@ import {
   IconButton,
   TextField,
   Badge,
+  CircularProgress,
+  Fade,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import {
   Send,
@@ -15,6 +19,8 @@ import {
   Phone,
   Videocam,
   Delete,
+  Done,
+  DoneAll,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { useChat } from '../contexts/ChatContext';
@@ -22,8 +28,33 @@ import { getImageUrl } from '../utils/imageUrl';
 
 const ChatWindow: React.FC = () => {
   const { currentUser } = useAuth();
-  const { selectedUser, currentMessages, sendMessage, deleteConversation } = useChat();
+  const { selectedUser, currentMessages, sendMessage, deleteConversation, refreshMessages } = useChat();
   const [message, setMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [currentMessages]);
+
+  // Auto-refresh messages every 3 seconds when chat is open
+  useEffect(() => {
+    if (selectedUser && refreshMessages) {
+      refreshIntervalRef.current = setInterval(() => {
+        refreshMessages();
+      }, 3000);
+
+      return () => {
+        if (refreshIntervalRef.current) {
+          clearInterval(refreshIntervalRef.current);
+        }
+      };
+    }
+  }, [selectedUser, refreshMessages]);
 
   if (!selectedUser) {
     return null; // This will show the WelcomeScreen instead
@@ -31,11 +62,22 @@ const ChatWindow: React.FC = () => {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim()) return;
+    if (!message.trim() || isSending) return;
 
-    const success = await sendMessage(message.trim());
-    if (success) {
-      setMessage('');
+    setIsSending(true);
+    setError(null);
+
+    try {
+      const success = await sendMessage(message.trim());
+      if (success) {
+        setMessage('');
+      } else {
+        setError('Failed to send message');
+      }
+    } catch (err) {
+      setError('Network error. Please try again.');
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -151,71 +193,103 @@ const ChatWindow: React.FC = () => {
           gap: 2,
         }}
       >
-        {currentMessages.map((msg) => {
+        {currentMessages.map((msg, index) => {
           const isOwn = msg.senderId === currentUser?.id;
           const senderAvatar = isOwn ? msg.senderAvatar : msg.senderAvatar;
+          const isLastMessage = index === currentMessages.length - 1;
+          
           return (
-            <Box
-              key={msg.id}
-              sx={{
-                display: 'flex',
-                justifyContent: isOwn ? 'flex-end' : 'flex-start',
-                alignItems: 'flex-end',
-                gap: 1,
-              }}
-            >
-              {!isOwn && (
-                <Avatar
-                  src={getImageUrl(senderAvatar)}
-                  sx={{
-                    width: 28,
-                    height: 28,
-                    bgcolor: '#6366f1',
-                    fontSize: '0.75rem',
-                  }}
-                >
-                  {!senderAvatar && msg.senderUsername?.charAt(0).toUpperCase()}
-                </Avatar>
-              )}
-              <Paper
+            <Fade in={true} timeout={300} key={msg.id}>
+              <Box
                 sx={{
-                  maxWidth: { xs: '70%', md: '60%' },
-                  p: 1.5,
-                  bgcolor: isOwn ? '#6366f1' : '#1e293b',
-                  color: isOwn ? 'white' : '#f8fafc',
-                  borderRadius: 2,
+                  display: 'flex',
+                  justifyContent: isOwn ? 'flex-end' : 'flex-start',
+                  alignItems: 'flex-end',
+                  gap: 1,
+                  mb: isLastMessage ? 2 : 0,
                 }}
               >
-                <Typography variant="body2" sx={{ mb: 0.5 }}>
-                  {msg.content}
-                </Typography>
-                <Typography
-                  variant="caption"
+                {!isOwn && (
+                  <Avatar
+                    src={getImageUrl(senderAvatar)}
+                    sx={{
+                      width: 28,
+                      height: 28,
+                      bgcolor: '#6366f1',
+                      fontSize: '0.75rem',
+                    }}
+                  >
+                    {!senderAvatar && msg.senderUsername?.charAt(0).toUpperCase()}
+                  </Avatar>
+                )}
+                <Paper
                   sx={{
-                    color: isOwn ? 'rgba(255,255,255,0.7)' : '#94a3b8',
-                    display: 'block',
-                    textAlign: 'right',
+                    maxWidth: { xs: '70%', md: '60%' },
+                    p: 1.5,
+                    bgcolor: isOwn ? '#6366f1' : '#1e293b',
+                    color: isOwn ? 'white' : '#f8fafc',
+                    borderRadius: 2,
+                    position: 'relative',
+                    animation: isLastMessage ? 'slideInUp 0.3s ease-out' : 'none',
                   }}
                 >
-                  {formatTime(new Date(msg.createdAt || msg.timestamp))}
-                </Typography>
-              </Paper>
-              {isOwn && (
-                <Avatar
-                  src={getImageUrl(senderAvatar)}
-                  sx={{
-                    width: 28,
-                    height: 28,
-                    bgcolor: '#6366f1',
-                    fontSize: '0.75rem',
-                  }}
-                >
-                  {!senderAvatar && msg.senderUsername?.charAt(0).toUpperCase()}
-                </Avatar>
-              )}
-            </Box>
+                  <Typography variant="body2" sx={{ mb: 0.5 }}>
+                    {msg.content}
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: isOwn ? 'rgba(255,255,255,0.7)' : '#94a3b8',
+                      }}
+                    >
+                      {formatTime(new Date(msg.createdAt || msg.timestamp))}
+                    </Typography>
+                    {isOwn && (
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        {msg.isRead ? (
+                          <DoneAll sx={{ fontSize: 14, color: '#10b981' }} />
+                        ) : (
+                          <Done sx={{ fontSize: 14, color: 'rgba(255,255,255,0.7)' }} />
+                        )}
+                      </Box>
+                    )}
+                  </Box>
+                </Paper>
+                {isOwn && (
+                  <Avatar
+                    src={getImageUrl(senderAvatar)}
+                    sx={{
+                      width: 28,
+                      height: 28,
+                      bgcolor: '#6366f1',
+                      fontSize: '0.75rem',
+                    }}
+                  >
+                    {!senderAvatar && msg.senderUsername?.charAt(0).toUpperCase()}
+                  </Avatar>
+                )}
+              </Box>
+            </Fade>
           );
         })}
+        
+        {isTyping && (
+          <Fade in={true}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 2 }}>
+              <Avatar sx={{ width: 28, height: 28, bgcolor: '#6366f1' }}>
+                {selectedUser.username.charAt(0).toUpperCase()}
+              </Avatar>
+              <Paper sx={{ p: 1.5, bgcolor: '#1e293b', borderRadius: 2 }}>
+                <Typography variant="body2" sx={{ color: '#94a3b8' }}>
+                  typing...
+                </Typography>
+              </Paper>
+            </Box>
+          </Fade>
+        )}
+        
+        <div ref={messagesEndRef} />
       </Box>
 
       <Paper
@@ -235,9 +309,10 @@ const ChatWindow: React.FC = () => {
           fullWidth
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="Type a message"
+          placeholder={isSending ? "Sending..." : "Type a message"}
           variant="outlined"
           size="small"
+          disabled={isSending}
           sx={{
             '& .MuiOutlinedInput-root': {
               bgcolor: '#374151',
@@ -254,6 +329,10 @@ const ChatWindow: React.FC = () => {
                   borderColor: '#6366f1',
                 },
               },
+              '&.Mui-disabled': {
+                bgcolor: '#374151',
+                opacity: 0.7,
+              },
             },
             '& .MuiInputBase-input::placeholder': {
               color: '#94a3b8',
@@ -263,17 +342,33 @@ const ChatWindow: React.FC = () => {
         />
         <IconButton
           type="submit"
+          disabled={isSending || !message.trim()}
           sx={{
-            bgcolor: '#6366f1',
+            bgcolor: isSending || !message.trim() ? '#374151' : '#6366f1',
             color: 'white',
             '&:hover': {
-              bgcolor: '#4f46e5',
+              bgcolor: isSending || !message.trim() ? '#374151' : '#4f46e5',
+            },
+            '&.Mui-disabled': {
+              color: '#94a3b8',
             },
           }}
         >
-          <Send />
+          {isSending ? <CircularProgress size={20} color="inherit" /> : <Send />}
         </IconButton>
       </Paper>
+
+      {/* Error Notification */}
+      <Snackbar
+        open={!!error}
+        autoHideDuration={4000}
+        onClose={() => setError(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="error" onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

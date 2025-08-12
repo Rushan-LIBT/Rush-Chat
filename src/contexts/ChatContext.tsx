@@ -13,11 +13,13 @@ interface ChatContextType {
   isLoadingConversations: boolean;
   isSearching: boolean;
   showSearch: boolean;
+  isOnline: boolean;
   selectUser: (user: User) => void;
   setSearchQuery: (query: string) => void;
   setShowSearch: (show: boolean) => void;
   sendMessage: (content: string) => Promise<boolean>;
   refreshConversations: () => Promise<void>;
+  refreshMessages: () => Promise<void>;
   deleteConversation: (otherUserId: string) => Promise<boolean>;
 }
 
@@ -44,7 +46,22 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const { currentUser } = useAuth();
+
+  // Network status detection
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const fetchConversations = async () => {
     if (!currentUser) return;
@@ -96,6 +113,19 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     await fetchConversations();
   };
 
+  const refreshMessages = async () => {
+    if (!currentUser || !selectedUser) return;
+    
+    try {
+      const response = await chatAPI.getMessages(currentUser.id, selectedUser.id);
+      if (response.success) {
+        setCurrentMessages(response.messages);
+      }
+    } catch (error) {
+      console.error('Error refreshing messages:', error);
+    }
+  };
+
   const deleteConversation = async (otherUserId: string): Promise<boolean> => {
     if (!currentUser) return false;
     
@@ -126,6 +156,11 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const sendMessage = async (content: string): Promise<boolean> => {
     if (!currentUser || !selectedUser || !content.trim()) return false;
     
+    // Check network connectivity
+    if (!isOnline) {
+      throw new Error('You are offline. Please check your internet connection.');
+    }
+    
     try {
       const response = await chatAPI.sendMessage(currentUser.id, selectedUser.id, content.trim());
       
@@ -137,6 +172,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       }
     } catch (error) {
       console.error('Error sending message:', error);
+      throw error;
     }
     return false;
   };
@@ -177,11 +213,13 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     isLoadingConversations,
     isSearching,
     showSearch,
+    isOnline,
     selectUser,
     setSearchQuery,
     setShowSearch,
     sendMessage,
     refreshConversations,
+    refreshMessages,
     deleteConversation,
   };
 
