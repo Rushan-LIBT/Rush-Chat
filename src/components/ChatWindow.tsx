@@ -32,7 +32,6 @@ const ChatWindow: React.FC = () => {
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -273,21 +272,6 @@ const ChatWindow: React.FC = () => {
             </Fade>
           );
         })}
-        
-        {isTyping && (
-          <Fade in={true}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 2 }}>
-              <Avatar sx={{ width: 28, height: 28, bgcolor: '#6366f1' }}>
-                {selectedUser.username.charAt(0).toUpperCase()}
-              </Avatar>
-              <Paper sx={{ p: 1.5, bgcolor: '#1e293b', borderRadius: 2 }}>
-                <Typography variant="body2" sx={{ color: '#94a3b8' }}>
-                  typing...
-                </Typography>
-              </Paper>
-            </Box>
-          </Fade>
-        )}
         
         <div ref={messagesEndRef} />
       </Box>
