@@ -13,8 +13,6 @@
     "moduleDetection": "force",
     "noEmit": true,
 
-    /* Node types */
-    "types": ["node"],
 
     /* Linting */
     "strict": true,
