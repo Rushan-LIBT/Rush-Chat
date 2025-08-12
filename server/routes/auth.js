@@ -2,14 +2,22 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const User = require('../models/User');
 
 const router = express.Router();
 
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log('Created uploads directory:', uploadsDir);
+}
+
 // Configure multer for file upload
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'server/uploads/');
+    cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -192,47 +200,66 @@ router.post('/logout', async (req, res) => {
 });
 
 // Upload profile photo
-router.post('/upload-avatar/:userId', upload.single('avatar'), async (req, res) => {
-  try {
-    const { userId } = req.params;
-    
-    if (!req.file) {
+router.post('/upload-avatar/:userId', (req, res) => {
+  console.log('Upload avatar request received for user:', req.params.userId);
+  console.log('Request headers:', req.headers);
+  
+  upload.single('avatar')(req, res, async (uploadError) => {
+    if (uploadError) {
+      console.error('Multer upload error:', uploadError);
       return res.status(400).json({
         success: false,
-        message: 'No file uploaded'
+        message: `Upload error: ${uploadError.message}`
       });
     }
 
-    // Update user's avatar field
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    user.avatar = `/uploads/${req.file.filename}`;
-    await user.save();
-
-    res.json({
-      success: true,
-      message: 'Profile photo updated successfully',
-      avatar: user.avatar,
-      user: {
-        id: user._id,
-        username: user.username,
-        isOnline: user.isOnline,
-        avatar: user.avatar
+    try {
+      const { userId } = req.params;
+      
+      console.log('File received:', req.file);
+      
+      if (!req.file) {
+        console.log('No file in request');
+        return res.status(400).json({
+          success: false,
+          message: 'No file uploaded'
+        });
       }
-    });
-  } catch (error) {
-    console.error('Upload avatar error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error uploading photo'
-    });
-  }
+
+      // Update user's avatar field
+      const user = await User.findById(userId);
+      if (!user) {
+        console.log('User not found:', userId);
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      user.avatar = `/uploads/${req.file.filename}`;
+      await user.save();
+
+      console.log('Avatar updated successfully:', user.avatar);
+
+      res.json({
+        success: true,
+        message: 'Profile photo updated successfully',
+        avatar: user.avatar,
+        user: {
+          id: user._id,
+          username: user.username,
+          isOnline: user.isOnline,
+          avatar: user.avatar
+        }
+      });
+    } catch (error) {
+      console.error('Upload avatar error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error uploading photo'
+      });
+    }
+  });
 });
 
 // Get all users (for chat list)
