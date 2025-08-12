@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: rush-chat
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        fromDatabase:
+          name: rushchat-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: rush-chat
+          property: host
+
+databases:
+  - name: rushchat-db
+    databaseName: rushchat
+    user: rushchat
