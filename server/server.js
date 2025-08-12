@@ -13,10 +13,13 @@ const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
     ? [
         process.env.FRONTEND_URL || 'https://rush-chat-frontend.onrender.com',
-        'https://rush-chat-frontend.onrender.com'
+        'https://rush-chat-frontend.onrender.com',
+        // Allow any onrender.com subdomain for now
+        /^https:\/\/.*\.onrender\.com$/
       ]
     : ['http://localhost:3000', 'http://localhost:5173'],
-  credentials: true
+  credentials: true,
+  optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
