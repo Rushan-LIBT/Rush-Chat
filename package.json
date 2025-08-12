@@ -10,7 +10,7 @@
     "server": "nodemon server/server.js",
     "dev:full": "concurrently \"npm run server\" \"npm run dev\"",
     "start": "node server/server.js",
-    "postbuild": "echo Build complete"
+    "postbuild": "echo Build complete - Full-stack app ready"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

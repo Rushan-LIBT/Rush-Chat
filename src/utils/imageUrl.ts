@@ -2,11 +2,11 @@
 export const getImageUrl = (imagePath: string | undefined): string | undefined => {
   if (!imagePath) return undefined;
   
-  // In production, images are served from the same domain
-  if (import.meta.env.PROD) {
-    return imagePath; // e.g., "/uploads/filename.jpg"
-  }
-  
-  // In development, images are served from localhost:5000
-  return `http://localhost:5000${imagePath}`;
+  // Use API base URL for images (they're served from backend)
+  const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 
+    (import.meta.env.PROD 
+      ? 'https://rush-chat-api.onrender.com' 
+      : 'http://localhost:5000');
+    
+  return `${baseUrl}${imagePath}`;
 };

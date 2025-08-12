@@ -1,9 +1,10 @@
 import axios from 'axios';
 
-// Use same domain in production, localhost in development
-const API_BASE_URL = import.meta.env.PROD 
-  ? '/api'  // Production: same domain
-  : 'http://localhost:5000/api';  // Development: localhost
+// Use environment variable for API URL, fallback to localhost in development
+const API_BASE_URL = import.meta.env.VITE_API_URL || 
+  (import.meta.env.PROD 
+    ? 'https://rush-chat-api.onrender.com/api'  // Production: separate backend
+    : 'http://localhost:5000/api');  // Development: localhost
 
 const api = axios.create({
   baseURL: API_BASE_URL,

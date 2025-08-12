@@ -5,6 +5,7 @@ services:
     plan: free
     buildCommand: npm install && npm run build
     startCommand: npm start
+    healthCheckPath: /api/auth/users
     envVars:
       - key: NODE_ENV
         value: production
@@ -18,4 +19,7 @@ services:
           name: rush-chat
           property: host
 
-# Database configuration removed - using external MongoDB Atlas
+# Full-stack React + Node.js chat application
+# Frontend: React + TypeScript + Vite (built to /dist)
+# Backend: Express.js API server (serves static files + API)
+# Database: External MongoDB Atlas

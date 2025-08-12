@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: rush-chat-api
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server/server.js
+    healthCheckPath: /api/auth/users
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        value: mongodb+srv://rushan:rushan1234@cluster0.sluz1rc.mongodb.net/Chat?retryWrites=true&w=majority&appName=Cluster0
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        value: https://rush-chat-frontend.onrender.com
+
+# Backend API service only
+# Serves Express.js API endpoints
+# Database: External MongoDB Atlas
+# CORS configured for frontend domain

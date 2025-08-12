@@ -1,0 +1,13 @@
+services:
+  - type: static_site
+    name: rush-chat-frontend
+    buildCommand: npm install && npm run build
+    publishDir: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://rush-chat-api.onrender.com/api
+
+# Frontend static site only
+# Serves React + TypeScript + Vite build
+# Connects to separate backend API
+# Deployed on global CDN
