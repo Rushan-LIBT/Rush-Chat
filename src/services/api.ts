@@ -26,7 +26,7 @@ const getCachedData = (key: string): any | null => {
   return null;
 };
 
-const setCachedData = (key: string, data: any, ttl: number = 30000) => {
+const setCachedData = (key: string, data: any, ttl: number = 5000) => {
   cache.set(key, { data, timestamp: Date.now(), ttl });
 };
 
@@ -78,7 +78,7 @@ export const authAPI = {
     if (cached) return cached;
     
     const response = await api.get('/auth/users');
-    setCachedData(cacheKey, response.data, 60000); // Cache for 1 minute
+    setCachedData(cacheKey, response.data, 10000); // Cache for 10 seconds for live updates
     return response.data;
   },
 
@@ -97,12 +97,14 @@ export const authAPI = {
 
 export const chatAPI = {
   getConversations: async (userId: string) => {
-    const response = await api.get(`/conversations/${userId}`);
+    // No caching for conversations to ensure live updates
+    const response = await api.get(`/conversations/${userId}?t=${Date.now()}`);
     return response.data;
   },
 
   getMessages: async (userId: string, otherUserId: string) => {
-    const response = await api.get(`/messages/${userId}/${otherUserId}`);
+    // No caching for messages to ensure live updates
+    const response = await api.get(`/messages/${userId}/${otherUserId}?t=${Date.now()}`);
     return response.data;
   },
 

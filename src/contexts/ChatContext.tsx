@@ -165,9 +165,15 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       const response = await chatAPI.sendMessage(currentUser.id, selectedUser.id, content.trim());
       
       if (response.success) {
+        // Immediately add message to current messages for instant feedback
         setCurrentMessages(prev => [...prev, response.message]);
-        // Refresh conversations to update last message
-        await fetchConversations();
+        
+        // Trigger immediate refresh of conversations for live updates
+        fetchConversations();
+        
+        // Also refresh messages to ensure sync
+        refreshMessages();
+        
         return true;
       }
     } catch (error) {
@@ -193,13 +199,16 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     }
   }, [currentUser]);
 
-  // Auto-refresh conversations every 30 seconds
+  // Live updates - refresh conversations every 2 seconds
   useEffect(() => {
     if (!currentUser) return;
 
+    // Initial fetch
+    fetchConversations();
+
     const interval = setInterval(() => {
       fetchConversations();
-    }, 30000); // 30 seconds
+    }, 2000); // 2 seconds for live conversation updates
 
     return () => clearInterval(interval);
   }, [currentUser]);

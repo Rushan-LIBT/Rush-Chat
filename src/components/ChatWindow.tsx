@@ -40,12 +40,16 @@ const ChatWindow: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [currentMessages]);
 
-  // Auto-refresh messages every 3 seconds when chat is open
+  // Live updates - refresh messages every 1 second when chat is open
   useEffect(() => {
     if (selectedUser && refreshMessages) {
+      // Initial load
+      refreshMessages();
+      
+      // Set up live refresh
       refreshIntervalRef.current = setInterval(() => {
         refreshMessages();
-      }, 3000);
+      }, 1000); // 1 second for live updates
 
       return () => {
         if (refreshIntervalRef.current) {
